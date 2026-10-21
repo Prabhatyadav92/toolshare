@@ -2,7 +2,7 @@
 # The Express server serves the built React app, so this is a single web service.
 services:
   - type: web
-    name: toolshare-india
+    name: toolshare
     runtime: node
     plan: free
     buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
