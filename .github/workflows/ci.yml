@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - name: Install server dependencies
+        run: npm ci --prefix server
+      - name: Install client dependencies
+        run: npm ci --prefix client
+      - name: Syntax-check server
+        run: |
+          for f in server/*.js server/routes/*.js server/models/*.js server/middleware/*.js; do node --check "$f"; done
+      - name: Build client
+        run: npm run build --prefix client

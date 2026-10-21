@@ -1,0 +1,17 @@
+# One-click deploy on Render (https://render.com): New > Blueprint > pick this repo.
+# The Express server serves the built React app, so this is a single web service.
+services:
+  - type: web
+    name: toolshare-india
+    runtime: node
+    plan: free
+    buildCommand: npm install --prefix server && npm install --prefix client && npm run build --prefix client
+    startCommand: npm start --prefix server
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false # you paste your Atlas URL in the Render dashboard, never in git
+      - key: JWT_SECRET
+        generateValue: true

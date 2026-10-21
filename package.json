@@ -1,0 +1,23 @@
+{
+  "name": "toolshare",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n api,web -c green,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm install --prefix client && npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "seed": "npm run seed --prefix server --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "description": "ToolShare India: a MERN app to borrow tools from neighbours and lend what you own.",
+  "author": "Prabhat Yadav",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
