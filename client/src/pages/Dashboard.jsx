@@ -85,7 +85,8 @@ export default function Dashboard() {
     load();
   }, [load]);
 
-  const changeStatus = async (id, status, okMsg) => {
+  const changeStatus = async (id, status, okMsg, confirmMsg) => {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
     try {
       await api(`/bookings/${id}/status`, { method: 'PATCH', body: { status } });
       toast(okMsg);
@@ -156,6 +157,7 @@ export default function Dashboard() {
                   <p className="text-xs text-stone-500">
                     From {b.borrower?.name} ({b.borrower?.email})
                   </p>
+                  {b.pickupWindow && <p className="mt-1 text-xs text-stone-500">Pick-up: {b.pickupWindow}</p>}
                   {b.message && <p className="mt-1 text-xs text-stone-500 italic">“{b.message}”</p>}
                   {b.review?.rating && (
                     <p className="mt-1 text-xs text-stone-600">
@@ -169,13 +171,13 @@ export default function Dashboard() {
                       <button className={`${btn} bg-emerald-700 text-white hover:bg-emerald-800`} onClick={() => changeStatus(b._id, 'approved', 'Request approved')}>
                         Approve
                       </button>
-                      <button className={`${btn} border border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => changeStatus(b._id, 'declined', 'Request declined')}>
+                      <button className={`${btn} border border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => changeStatus(b._id, 'declined', 'Request declined', 'Decline this request?')}>
                         Decline
                       </button>
                     </>
                   )}
                   {b.status === 'approved' && (
-                    <button className={`${btn} border border-stone-300 text-stone-800 hover:bg-stone-50`} onClick={() => changeStatus(b._id, 'returned', 'Marked as returned')}>
+                    <button className={`${btn} border border-stone-300 text-stone-800 hover:bg-stone-50`} onClick={() => changeStatus(b._id, 'returned', 'Marked as returned', 'Mark this tool as returned? Borrower will then be able to review it.')}>
                       Mark returned
                     </button>
                   )}
@@ -215,6 +217,7 @@ export default function Dashboard() {
                   <p className="text-xs text-stone-500">
                     Owner: {b.owner?.name} ({b.owner?.email})
                   </p>
+                  {b.pickupWindow && <p className="text-xs text-stone-500">Pick-up: {b.pickupWindow}</p>}
                   {b.status === 'returned' && !b.review?.rating && <ReviewForm booking={b} onDone={load} />}
                   {b.review?.rating && (
                     <p className="mt-1 text-xs text-stone-600">
@@ -223,7 +226,7 @@ export default function Dashboard() {
                   )}
                 </div>
                 {(b.status === 'pending' || b.status === 'approved') && (
-                  <button className={`${btn} border border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => changeStatus(b._id, 'cancelled', 'Booking cancelled')}>
+                  <button className={`${btn} border border-rose-300 text-rose-700 hover:bg-rose-50`} onClick={() => changeStatus(b._id, 'cancelled', 'Booking cancelled', 'Cancel this booking?')}>
                     Cancel
                   </button>
                 )}

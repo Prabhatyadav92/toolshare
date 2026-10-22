@@ -1,9 +1,13 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Tool = require('../models/Tool');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
+
+const MAX_DAYS = 60;
+const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
 const startOfDay = (d) => {
   const x = new Date(d);
@@ -32,15 +36,21 @@ const populateAll = (q) =>
 // Request to borrow a tool
 router.post('/', protect, async (req, res, next) => {
   try {
-    const { toolId, startDate, endDate, message, pickupWindow } = req.body;
+    const { toolId, startDate, endDate } = req.body;
+    const message = str(req.body.message).slice(0, 500);
+    const pickupWindow = str(req.body.pickupWindow).slice(0, 60);
     if (!toolId || !startDate || !endDate) {
       return res.status(400).json({ message: 'toolId, startDate and endDate are required' });
     }
+    if (!mongoose.isValidObjectId(toolId)) return res.status(400).json({ message: 'Invalid tool' });
     const start = startOfDay(startDate);
     const end = startOfDay(endDate);
     if (isNaN(start) || isNaN(end)) return res.status(400).json({ message: 'Invalid dates' });
     if (end < start) return res.status(400).json({ message: 'End date must be on or after start date' });
     if (start < startOfDay(new Date())) return res.status(400).json({ message: 'Start date cannot be in the past' });
+    if (Math.round((end - start) / 86400000) + 1 > MAX_DAYS) {
+      return res.status(400).json({ message: `You can borrow a tool for at most ${MAX_DAYS} days at a time` });
+    }
 
     const tool = await Tool.findById(toolId);
     if (!tool) return res.status(404).json({ message: 'Tool not found' });
@@ -68,12 +78,18 @@ router.post('/', protect, async (req, res, next) => {
       startDate: start,
       endDate: end,
       message,
+      pickupWindow,
       days,
       rentalCost: days * (tool.pricePerDay || 0),
       deposit: tool.deposit || 0,
       instant: Boolean(tool.instantBook),
       status: tool.instantBook ? 'approved' : 'pending', // instant-book tools skip owner approval
     });
+        // Re-check after saving: if two requests raced, undo this one
+    if (booking.status === 'approved' && (await hasConflict(tool._id, start, end, booking._id))) {
+      await booking.deleteOne();
+      return res.status(409).json({ message: 'Those dates are already booked' });
+    }
     res.status(201).json({ booking });
   } catch (err) {
     next(err);
@@ -103,7 +119,7 @@ router.get('/incoming', protect, async (req, res, next) => {
 // Status changes
 router.patch('/:id/status', protect, async (req, res, next) => {
   try {
-    const { status } = req.body;
+    const status = str(req.body.status);
     const booking = await Booking.findById(req.params.id);
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
 
@@ -138,7 +154,8 @@ router.patch('/:id/status', protect, async (req, res, next) => {
 // Borrower reviews the tool after it was returned
 router.post('/:id/review', protect, async (req, res, next) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating } = req.body;
+    const comment = str(req.body.comment).slice(0, 500);
     const r = Number(rating);
     if (!Number.isInteger(r) || r < 1 || r > 5) {
       return res.status(400).json({ message: 'Rating must be an integer from 1 to 5' });

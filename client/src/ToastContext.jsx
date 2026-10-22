@@ -17,7 +17,7 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={show}>
       {children}
       {toast && (
-        <div className="toast-in fixed bottom-6 right-6 z-[60] flex max-w-sm items-center gap-3 rounded-2xl border border-stone-800 bg-stone-900 px-5 py-3.5 text-stone-100 shadow-2xl">
+        <div role="status" aria-live="polite" className="toast-in fixed bottom-6 right-6 z-[60] flex max-w-sm items-center gap-3 rounded-2xl border border-stone-800 bg-stone-900 px-5 py-3.5 text-stone-100 shadow-2xl">
           {toast.type === 'err' ? (
             <AlertCircle className="h-5 w-5 shrink-0 text-rose-400" />
           ) : (
