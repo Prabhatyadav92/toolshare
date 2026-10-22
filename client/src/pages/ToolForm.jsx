@@ -33,11 +33,26 @@ export default function ToolForm() {
   const [saving, setSaving] = useState(false);
   const [loadingTool, setLoadingTool] = useState(editing);
 
+  // Image preview: debounced so we don't request an image on every keystroke,
+  // and failures are tracked per-URL so a bad URL doesn't hide the next valid one.
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [failedUrl, setFailedUrl] = useState('');
+
+  useEffect(() => {
+    const url = form.imageUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      setPreviewUrl('');
+      return;
+    }
+    const t = setTimeout(() => setPreviewUrl(url), 500);
+    return () => clearTimeout(t);
+  }, [form.imageUrl]);
+
   useEffect(() => {
     if (!editing) return;
     api(`/tools/${id}`)
       .then(({ tool }) => {
-        if (String(tool.owner._id) !== String(user.id)) return navigate('/', { replace: true });
+        if (String(tool.owner?._id) !== String(user.id)) return navigate('/', { replace: true });
         setForm({
           name: tool.name,
           description: tool.description || '',
@@ -76,6 +91,8 @@ export default function ToolForm() {
   };
 
   if (loadingTool) return <p className="py-20 text-center text-stone-500">Loading…</p>;
+
+  const previewFailed = previewUrl && failedUrl === previewUrl;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -149,9 +166,15 @@ export default function ToolForm() {
         <div>
           <label className={label}>Image URL (optional)</label>
           <input className={field} type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://…" />
-          {form.imageUrl && /^https?:\/\//i.test(form.imageUrl) && (
-            <img src={form.imageUrl} alt="Preview" onError={(e) => (e.currentTarget.style.display = 'none')} className="mt-2 h-28 w-44 rounded-xl border border-stone-200 object-cover" />
+          {previewUrl && !previewFailed && (
+            <img
+              src={previewUrl}
+              alt="Preview"
+              onError={() => setFailedUrl(previewUrl)}
+              className="mt-2 h-28 w-44 rounded-xl border border-stone-200 object-cover"
+            />
           )}
+          {previewFailed && <p className="mt-2 text-xs text-rose-700">Couldn't load this image. Check the URL.</p>}
         </div>
 
         <div className="space-y-2 rounded-xl border border-stone-200/60 bg-stone-50/70 p-3">
