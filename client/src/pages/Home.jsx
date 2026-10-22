@@ -58,6 +58,7 @@ export default function Home() {
   const [borrowing, setBorrowing] = useState(null);
 
   useEffect(() => {
+    let ignore = false; // set when filters change/unmount so an older, slower response can't overwrite newer results
     const t = setTimeout(() => {
       const p = new URLSearchParams();
       if (filters.q) p.set('q', filters.q);
@@ -68,13 +69,21 @@ export default function Home() {
       setLoading(true);
       api('/tools?' + p.toString())
         .then((d) => {
+          if (ignore) return;
           setTools(d.tools);
           setError('');
         })
-        .catch((e) => setError(e.message))
-        .finally(() => setLoading(false));
+        .catch((e) => {
+          if (!ignore) setError(e.message);
+        })
+        .finally(() => {
+          if (!ignore) setLoading(false);
+        });
     }, 250);
-    return () => clearTimeout(t);
+    return () => {
+      ignore = true;
+      clearTimeout(t);
+    };
   }, [filters]);
 
   const set = (k) => (v) => setFilters((f) => ({ ...f, [k]: v }));
@@ -82,12 +91,14 @@ export default function Home() {
   const visible = useMemo(() => (showSaved ? tools.filter((t) => favs.includes(t._id)) : tools), [tools, showSaved, favs]);
 
   const pins = useMemo(() => {
-    const groups = {};
+    // Map (not a plain object): locality is user-supplied, and keys like "constructor" or "__proto__" would crash a plain {}
+    const groups = new Map();
     visible.forEach((t) => {
       const key = t.locality || t.city;
-      (groups[key] = groups[key] || []).push(t);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(t);
     });
-    return Object.entries(groups);
+    return [...groups.entries()];
   }, [visible]);
 
   const onToggleFav = (id) => {
