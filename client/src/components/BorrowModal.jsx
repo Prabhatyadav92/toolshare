@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Calendar, Info, CheckCircle2, Sparkles } from 'lucide-react';
 import { api, inr, todayISO } from '../api.js';
@@ -16,8 +16,20 @@ export default function BorrowModal({ tool, onClose, onDone }) {
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState(addDays(todayISO(), 1));
   const [message, setMessage] = useState('');
+  const [pickupWindow, setPickupWindow] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
 
   const days = useMemo(() => {
     const ms = new Date(endDate) - new Date(startDate);
@@ -33,7 +45,7 @@ export default function BorrowModal({ tool, onClose, onDone }) {
     if (days < 1) return setError('Return date must be on or after the pick-up date');
     setBusy(true);
     try {
-      const d = await api('/bookings', { method: 'POST', body: { toolId: tool._id, startDate, endDate, message } });
+      const d = await api('/bookings', { method: 'POST', body: { toolId: tool._id, startDate, endDate, message, pickupWindow } });
       onDone(d.booking, tool);
     } catch (err) {
       setError(err.message);
@@ -61,7 +73,7 @@ export default function BorrowModal({ tool, onClose, onDone }) {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200">
+          <button onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -120,6 +132,17 @@ export default function BorrowModal({ tool, onClose, onDone }) {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-stone-700">Preferred pick-up time (optional)</label>
+                <input
+                  maxLength={60}
+                  value={pickupWindow}
+                  onChange={(e) => setPickupWindow(e.target.value)}
+                  placeholder="e.g. Evening after 6 PM"
+                  className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-xs focus:ring-2 focus:ring-emerald-700 focus:outline-none"
+                />
               </div>
 
               <div>

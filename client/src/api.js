@@ -28,6 +28,11 @@ export async function api(path, { method = 'GET', body } = {}) {
   } catch (e) {
     /* empty body */
   }
+  if (res.status === 401 && token && !path.startsWith('/auth/login')) {
+    // Token expired or user deleted: tell the app to log out
+    setToken(null);
+    window.dispatchEvent(new Event('toolshare:unauthorized'));
+  }
   if (!res.ok) {
     const err = new Error(data.message || `Request failed (${res.status})`);
     err.status = res.status;

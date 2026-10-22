@@ -36,11 +36,11 @@ export default function Login() {
         {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
         <div>
           <label className="mb-1 block text-xs font-bold text-stone-700">Email</label>
-          <input className={field} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <input className={field} type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
         </div>
         <div>
           <label className="mb-1 block text-xs font-bold text-stone-700">Password</label>
-          <input className={field} type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+          <input className={field} type="password" autoComplete="current-password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
         </div>
         <button disabled={busy} className="w-full rounded-xl bg-emerald-800 py-3 text-sm font-semibold text-white shadow-md hover:bg-emerald-900 disabled:opacity-60">
           {busy ? 'Logging in…' : 'Log in'}

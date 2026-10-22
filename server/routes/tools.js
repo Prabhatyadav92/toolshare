@@ -28,6 +28,28 @@ const EDITABLE = [
 const pick = (obj, keys) =>
   keys.reduce((acc, k) => (obj[k] !== undefined ? { ...acc, [k]: obj[k] } : acc), {});
 
+const str = (v) => (typeof v === 'string' ? v.trim() : '');
+const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
+
+// Validates/normalises user-supplied tool fields before they reach Mongoose
+function sanitize(data) {
+  if (data.imageUrl !== undefined) {
+    const url = String(data.imageUrl).trim();
+    if (url && !/^https?:\/\//i.test(url)) throw badRequest('Image URL must start with http:// or https://');
+    data.imageUrl = url;
+  }
+  for (const k of ['pricePerDay', 'deposit']) {
+    if (data[k] === undefined) continue;
+    const n = Number(data[k]);
+    if (!Number.isFinite(n) || n < 0) throw badRequest(`${k === 'pricePerDay' ? 'Fee per day' : 'Deposit'} must be 0 or more`);
+    data[k] = Math.round(n);
+  }
+  for (const k of ['instantBook', 'available']) {
+    if (data[k] !== undefined) data[k] = data[k] === true || data[k] === 'true';
+  }
+  return data;
+}
+
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const toRad = (d) => (d * Math.PI) / 180;
@@ -73,7 +95,12 @@ async function decorate(tools) {
 // Browse / search. Optional: lat,lng (adds distanceKm and sorts by it), maxKm
 router.get('/', async (req, res, next) => {
   try {
-    const { q, category, city, locality, available, free } = req.query;
+    // Query params can arrive as arrays/objects (?city[$ne]=x), so only accept plain strings
+    const q = str(req.query.q);
+    const category = str(req.query.category);
+    const city = str(req.query.city);
+    const locality = str(req.query.locality);
+    const { available, free } = req.query;
     const lat = parseFloat(req.query.lat);
     const lng = parseFloat(req.query.lng);
     const maxKm = parseFloat(req.query.maxKm);
@@ -184,7 +211,7 @@ router.get('/:id/reviews', async (req, res, next) => {
 
 router.post('/', protect, async (req, res, next) => {
   try {
-    const data = pick(req.body, EDITABLE);
+    const data = sanitize(pick(req.body, EDITABLE));
     if (!data.country) data.country = req.user.country || 'India';
     const tool = await Tool.create({ ...data, owner: req.user._id });
     res.status(201).json({ tool });
@@ -199,7 +226,7 @@ router.put('/:id', protect, async (req, res, next) => {
     if (!tool) return res.status(404).json({ message: 'Tool not found' });
     if (!tool.owner.equals(req.user._id)) return res.status(403).json({ message: 'Not your tool' });
 
-    Object.assign(tool, pick(req.body, EDITABLE));
+    Object.assign(tool, sanitize(pick(req.body, EDITABLE)));
     await tool.save();
     res.json({ tool });
   } catch (err) {

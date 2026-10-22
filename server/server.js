@@ -10,13 +10,31 @@ const authRoutes = require('./routes/auth');
 const toolRoutes = require('./routes/tools');
 const bookingRoutes = require('./routes/bookings');
 const statsRoutes = require('./routes/stats');
+const rateLimit = require('./middleware/rateLimit');
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
+
+app.disable('x-powered-by');
+if (isProd) app.set('trust proxy', 1); // Render sits behind a proxy; needed for correct client IPs
+
+// Basic security headers
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  });
+  next();
+});
 
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+const authLimiter = rateLimit({ max: 20 });
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/tools', toolRoutes);
 app.use('/api/bookings', bookingRoutes);
@@ -44,13 +62,15 @@ app.use((err, req, res, next) => {
   if (err.code === 11000) {
     return res.status(409).json({ message: 'Duplicate value: ' + Object.keys(err.keyValue).join(', ') });
   }
-  res.status(err.status || 500).json({ message: err.message || 'Server error' });
+  const status = err.status || 500;
+  const message = status >= 500 && isProd ? 'Server error' : err.message || 'Server error';
+  res.status(status).json({ message });
 });
 
 const PORT = process.env.PORT || 5001;
 
 if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
+  if (isProd) {
     console.error('JWT_SECRET must be set in production. Generate one with: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
     process.exit(1);
   }

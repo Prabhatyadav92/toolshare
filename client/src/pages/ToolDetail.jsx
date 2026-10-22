@@ -31,8 +31,17 @@ export default function ToolDetail() {
       .catch((e) => setError(e.message));
 
   useEffect(() => {
+    setTool(null);
+    setError('');
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (tool) document.title = `${tool.name} – ToolShare India`;
+    return () => {
+      document.title = 'ToolShare India – Borrow tools from your neighbours';
+    };
+  }, [tool]);
 
   const remove = async () => {
     if (!window.confirm('Delete this tool permanently?')) return;
@@ -45,7 +54,16 @@ export default function ToolDetail() {
     }
   };
 
-  if (error) return <p className="mx-auto max-w-3xl px-4 py-20 text-center text-rose-700">{error}</p>;
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <p className="text-rose-700">{error}</p>
+        <Link to="/" className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">
+          ← Back to all tools
+        </Link>
+      </div>
+    );
+  }
   if (!tool) return <p className="py-20 text-center text-stone-500">Loading…</p>;
 
   const isOwner = user && tool.owner && String(tool.owner._id) === String(user.id);

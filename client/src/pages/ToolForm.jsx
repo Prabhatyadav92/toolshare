@@ -31,12 +31,13 @@ export default function ToolForm() {
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadingTool, setLoadingTool] = useState(editing);
 
   useEffect(() => {
     if (!editing) return;
     api(`/tools/${id}`)
       .then(({ tool }) => {
-        if (String(tool.owner._id) !== String(user.id)) return navigate('/');
+        if (String(tool.owner._id) !== String(user.id)) return navigate('/', { replace: true });
         setForm({
           name: tool.name,
           description: tool.description || '',
@@ -52,7 +53,8 @@ export default function ToolForm() {
           available: tool.available,
         });
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(e.message))
+      .finally(() => setLoadingTool(false));
   }, [id]);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
@@ -72,6 +74,8 @@ export default function ToolForm() {
       setSaving(false);
     }
   };
+
+  if (loadingTool) return <p className="py-20 text-center text-stone-500">Loading…</p>;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -110,7 +114,7 @@ export default function ToolForm() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className={label}>City *</label>
-            <input className={field} value={form.city} onChange={set('city')} required placeholder="e.g. Greater Noida" />
+            <input className={field} value={form.city} onChange={set('city')} required maxLength={60} placeholder="e.g. Greater Noida" />
           </div>
           <div>
             <label className={label}>Area / sector / society</label>
@@ -145,6 +149,9 @@ export default function ToolForm() {
         <div>
           <label className={label}>Image URL (optional)</label>
           <input className={field} type="url" value={form.imageUrl} onChange={set('imageUrl')} placeholder="https://…" />
+          {form.imageUrl && /^https?:\/\//i.test(form.imageUrl) && (
+            <img src={form.imageUrl} alt="Preview" onError={(e) => (e.currentTarget.style.display = 'none')} className="mt-2 h-28 w-44 rounded-xl border border-stone-200 object-cover" />
+          )}
         </div>
 
         <div className="space-y-2 rounded-xl border border-stone-200/60 bg-stone-50/70 p-3">

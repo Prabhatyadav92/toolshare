@@ -14,8 +14,14 @@ export function AuthProvider({ children }) {
     }
     api('/auth/me')
       .then((d) => setUser(d.user))
-      .catch(() => setToken(null))
+      .catch(() => {})
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const onUnauthorized = () => setUser(null);
+    window.addEventListener('toolshare:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('toolshare:unauthorized', onUnauthorized);
   }, []);
 
   const login = useCallback(async (email, password) => {

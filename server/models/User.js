@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Email is invalid'],
     },
-    password: { type: String, required: [true, 'Password is required'], minlength: 6, select: false },
+    password: { type: String, required: [true, 'Password is required'], minlength: [8, 'Password must be at least 8 characters'], select: false },
     locality: { type: String, trim: true, default: '' },
     city: { type: String, trim: true, default: '' },
     country: { type: String, trim: true, default: 'India' },

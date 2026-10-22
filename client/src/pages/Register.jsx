@@ -8,7 +8,7 @@ const label = 'mb-1 block text-xs font-bold text-stone-700';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '', city: '', country: 'India' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', city: '', locality: '', country: 'India' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -38,15 +38,19 @@ export default function Register() {
         {error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">{error}</p>}
         <div>
           <label className={label}>Full name</label>
-          <input className={field} value={form.name} onChange={set('name')} required />
+          <input className={field} autoComplete="name" value={form.name} onChange={set('name')} required maxLength={60} />
         </div>
         <div>
           <label className={label}>Email</label>
-          <input className={field} type="email" value={form.email} onChange={set('email')} required />
+          <input className={field} type="email" autoComplete="email" value={form.email} onChange={set('email')} required />
         </div>
         <div>
-          <label className={label}>Password (min 6 characters)</label>
-          <input className={field} type="password" minLength={6} value={form.password} onChange={set('password')} required />
+          <label className={label}>Password (min 8 characters)</label>
+          <input className={field} type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={set('password')} required />
+        </div>
+        <div>
+          <label className={label}>Area / sector / society (optional)</label>
+          <input className={field} value={form.locality} onChange={set('locality')} placeholder="Alpha 1, Sector 62…" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

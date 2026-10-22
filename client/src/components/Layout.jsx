@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Wrench, PlusCircle, Bell, LogOut, LayoutDashboard } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Wrench, PlusCircle, Bell, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../AuthContext.jsx';
 import { api, initials, useStats } from '../api.js';
 import { BUILDER } from '../constants.js';
@@ -31,8 +31,11 @@ export function AnnouncementBar() {
 export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pending, setPending] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
+  // Refresh the badge on every page change so it stays correct after approving/declining
   useEffect(() => {
     if (!user) {
       setPending(0);
@@ -41,7 +44,11 @@ export function Header() {
     api('/bookings/incoming')
       .then((d) => setPending(d.bookings.filter((b) => b.status === 'pending').length))
       .catch(() => {});
-  }, [user]);
+  }, [user, location.pathname]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname, location.hash]);
 
   const linkCls = ({ isActive }) =>
     `transition-colors hover:text-stone-950 ${isActive ? 'text-emerald-800' : 'text-stone-600'}`;
@@ -70,12 +77,12 @@ export function Header() {
           <NavLink to="/" end className={linkCls}>
             Browse Tools
           </NavLink>
-          <a href="/#how-it-works" className="text-stone-600 transition-colors hover:text-stone-950">
+          <Link to="/#how-it-works" className="text-stone-600 transition-colors hover:text-stone-950">
             How it works
-          </a>
-          <a href="/#about" className="text-stone-600 transition-colors hover:text-stone-950">
+          </Link>
+          <Link to="/#about" className="text-stone-600 transition-colors hover:text-stone-950">
             About
-          </a>
+          </Link>
           {user && (
             <NavLink to="/dashboard" className={linkCls}>
               Dashboard
@@ -84,6 +91,14 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="rounded-xl p-2.5 text-stone-600 hover:bg-stone-100 lg:hidden"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
           <Link
             to="/tools/new"
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-700 to-emerald-800 px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:from-emerald-800 hover:to-emerald-900 hover:shadow-lg active:scale-[0.98]"
@@ -142,6 +157,23 @@ export function Header() {
           )}
         </div>
       </div>
+
+      {menuOpen && (
+        <nav className="border-t border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-700 lg:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1">
+            <Link to="/" className="rounded-lg px-3 py-2.5 hover:bg-stone-50">Browse Tools</Link>
+            <Link to="/#how-it-works" className="rounded-lg px-3 py-2.5 hover:bg-stone-50">How it works</Link>
+            <Link to="/#about" className="rounded-lg px-3 py-2.5 hover:bg-stone-50">About</Link>
+            {user ? (
+              <Link to="/dashboard" className="rounded-lg px-3 py-2.5 hover:bg-stone-50">
+                Dashboard{pending > 0 ? ` (${pending} pending)` : ''}
+              </Link>
+            ) : (
+              <Link to="/register" className="rounded-lg px-3 py-2.5 hover:bg-stone-50">Sign up</Link>
+            )}
+          </div>
+        </nav>
+      )}
     </header>
   );
 }
@@ -169,7 +201,7 @@ export function Footer() {
               <li><Link to="/" className="hover:text-emerald-800">Browse tools</Link></li>
               <li><Link to="/tools/new" className="hover:text-emerald-800">Lend a tool</Link></li>
               <li><Link to="/dashboard" className="hover:text-emerald-800">My dashboard</Link></li>
-              <li><a href="/#how-it-works" className="hover:text-emerald-800">How it works</a></li>
+              <li><Link to="/#how-it-works" className="hover:text-emerald-800">How it works</Link></li>
             </ul>
           </div>
 
