@@ -70,7 +70,12 @@ function badgeFor(returnedCount) {
 async function decorate(tools) {
   if (tools.length === 0) return tools;
   const toolIds = tools.map((t) => t._id);
-  const ownerIds = [...new Set(tools.map((t) => String(t.owner && t.owner._id ? t.owner._id : t.owner)))];
+  // A tool whose owner no longer exists has owner === null after populate(); skip those instead of crashing on ObjectId("null")
+  const ownerIds = [
+    ...new Set(
+      tools.map((t) => String(t.owner && t.owner._id ? t.owner._id : t.owner)).filter((id) => mongoose.isValidObjectId(id))
+    ),
+  ];
 
   const [byTool, byOwner] = await Promise.all([
     Booking.aggregate([
