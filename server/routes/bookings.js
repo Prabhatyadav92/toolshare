@@ -7,10 +7,19 @@ const { protect } = require('../middleware/auth');
 const router = express.Router();
 
 const MAX_DAYS = 60;
+const IST_OFFSET_MS = 330 * 60 * 1000; // UTC+05:30
 const str = (v) => (typeof v === 'string' ? v.trim() : '');
 
+// Normalises to midnight (stored as UTC midnight) of the IST calendar day.
+// - "YYYY-MM-DD" strings are taken as that exact calendar day
+// - full timestamps (e.g. new Date()) are converted to their IST day first
 const startOfDay = (d) => {
-  const x = new Date(d);
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.trim())) {
+    return new Date(`${d.trim()}T00:00:00.000Z`);
+  }
+  const t = new Date(d);
+  if (isNaN(t)) return t;
+  const x = new Date(t.getTime() + IST_OFFSET_MS);
   x.setUTCHours(0, 0, 0, 0);
   return x;
 };
@@ -85,7 +94,7 @@ router.post('/', protect, async (req, res, next) => {
       instant: Boolean(tool.instantBook),
       status: tool.instantBook ? 'approved' : 'pending', // instant-book tools skip owner approval
     });
-        // Re-check after saving: if two requests raced, undo this one
+    // Re-check after saving: if two requests raced, undo this one
     if (booking.status === 'approved' && (await hasConflict(tool._id, start, end, booking._id))) {
       await booking.deleteOne();
       return res.status(409).json({ message: 'Those dates are already booked' });
