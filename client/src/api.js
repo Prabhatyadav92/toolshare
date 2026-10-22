@@ -44,6 +44,7 @@ export async function api(path, { method = 'GET', body } = {}) {
 // ₹ with Indian digit grouping, e.g. ₹1,50,000
 export const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
 
+// Booking dates are stored as UTC midnight of the IST calendar day, so format them in UTC
 export const fmtDate = (d) =>
   new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
@@ -56,7 +57,10 @@ export const initials = (name = '') =>
     .join('')
     .toUpperCase();
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+// Today's date (YYYY-MM-DD) in IST, matching the server's day boundary.
+// Old version used toISOString() (UTC), which returned yesterday between 12:00 AM and 5:30 AM IST.
+export const todayISO = () =>
+  new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
 // Live stats from the API (cached per page load)
 let statsCache = null;
