@@ -23,6 +23,8 @@ jobs:
         run: npm ci --prefix client
       - name: Syntax-check server
         run: |
-          for f in server/*.js server/routes/*.js server/models/*.js server/middleware/*.js; do node --check "$f"; done
+          for f in server/*.js server/routes/*.js server/models/*.js server/middleware/*.js server/utils/*.js server/test/*.js; do node --check "$f"; done
+      - name: Run server validation tests
+        run: npm test --prefix server
       - name: Build client
         run: npm run build --prefix client
