@@ -7,7 +7,7 @@ const { normalizePriceFields, parseSearchCoordinates } = require('../utils/toolV
 
 const router = express.Router();
 
-const escapeRegex = (s) => s.replace(/[.*+?^${()|[\]\\]/g, '\\$&');
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const EDITABLE = [
   'name',
