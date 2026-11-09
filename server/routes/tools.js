@@ -7,7 +7,7 @@ const { normalizePriceFields, parseSearchCoordinates } = require('../utils/toolV
 
 const router = express.Router();
 
-const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
+const escapeRegex = (s) => s.replace(/[.*+?^${()|[\]\\]/g, '\\$&');
 
 const EDITABLE = [
   'name',
@@ -30,7 +30,7 @@ const pick = (obj, keys) =>
   keys.reduce((acc, k) => (obj[k] !== undefined ? { ...acc, [k]: obj[k] } : acc), {});
 
 const str = (v) => (typeof v === 'string' ? v.trim() : '');
-const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
+    if (url && !/^https?:\/\//i.test(url)) throw badRequest('Image URL must start with http:// or https://');
 
 // Validates/normalises user-supplied tool fields before they reach Mongoose
 function sanitize(data) {
