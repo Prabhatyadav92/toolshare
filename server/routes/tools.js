@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const Tool = require('../models/Tool');
 const Booking = require('../models/Booking');
 const { protect } = require('../middleware/auth');
+const { normalizePriceFields, parseSearchCoordinates } = require('../utils/toolValidation');
 
 const router = express.Router();
 
-const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&');
 
 const EDITABLE = [
   'name',
@@ -35,15 +36,10 @@ const badRequest = (message) => Object.assign(new Error(message), { status: 400 
 function sanitize(data) {
   if (data.imageUrl !== undefined) {
     const url = String(data.imageUrl).trim();
-    if (url && !/^https?:\/\//i.test(url)) throw badRequest('Image URL must start with http:// or https://');
+    if (url && !/^https?:\\/\\//i.test(url)) throw badRequest('Image URL must start with http:// or https://');
     data.imageUrl = url;
   }
-  for (const k of ['pricePerDay', 'deposit']) {
-    if (data[k] === undefined) continue;
-    const n = Number(data[k]);
-    if (!Number.isFinite(n) || n < 0) throw badRequest(`${k === 'pricePerDay' ? 'Fee per day' : 'Deposit'} must be 0 or more`);
-    data[k] = Math.round(n);
-  }
+  normalizePriceFields(data);
   for (const k of ['instantBook', 'available']) {
     if (data[k] !== undefined) data[k] = data[k] === true || data[k] === 'true';
   }
@@ -70,7 +66,12 @@ function badgeFor(returnedCount) {
 async function decorate(tools) {
   if (tools.length === 0) return tools;
   const toolIds = tools.map((t) => t._id);
-  const ownerIds = [...new Set(tools.map((t) => String(t.owner && t.owner._id ? t.owner._id : t.owner)))];
+  // A tool whose owner no longer exists has owner === null after populate(); skip those instead of crashing on ObjectId("null")
+  const ownerIds = [
+    ...new Set(
+      tools.map((t) => String(t.owner && t.owner._id ? t.owner._id : t.owner)).filter((id) => mongoose.isValidObjectId(id))
+    ),
+  ];
 
   const [byTool, byOwner] = await Promise.all([
     Booking.aggregate([
@@ -101,8 +102,9 @@ router.get('/', async (req, res, next) => {
     const city = str(req.query.city);
     const locality = str(req.query.locality);
     const { available, free } = req.query;
-    const lat = parseFloat(req.query.lat);
-    const lng = parseFloat(req.query.lng);
+    const point = parseSearchCoordinates(req.query);
+    const lat = point && point.lat;
+    const lng = point && point.lng;
     const maxKm = parseFloat(req.query.maxKm);
 
     const filter = {};
@@ -122,8 +124,7 @@ router.get('/', async (req, res, next) => {
       .limit(300)
       .lean();
 
-    const hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
-    if (hasPoint) {
+    if (point) {
       tools = tools.map((t) => ({
         ...t,
         distanceKm:
