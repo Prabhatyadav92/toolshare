@@ -17,8 +17,8 @@ const toolSchema = new mongoose.Schema(
     lat: { type: Number, min: -90, max: 90 },
     lng: { type: Number, min: -180, max: 180 },
     imageUrl: { type: String, trim: true, default: '' },
-    pricePerDay: { type: Number, min: 0, default: 0 }, // INR, 0 = free
-    deposit: { type: Number, min: 0, default: 0 }, // INR, refundable
+    pricePerDay: { type: Number, min: 0, max: 100000, default: 0 }, // INR, 0 = free; maximum ₹1 lakh/day
+    deposit: { type: Number, min: 0, max: 1000000, default: 0 }, // INR, refundable; maximum ₹10 lakh
     instantBook: { type: Boolean, default: false },
     available: { type: Boolean, default: true },
     ratingAvg: { type: Number, default: 0 },
